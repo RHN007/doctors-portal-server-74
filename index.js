@@ -9,10 +9,29 @@ const app = express();
 // middle ware
 app.use(cors());
 app.use(express.json());
+
+
+
+
  
-console.log(process.env.DB_USER)
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.eekiv4v.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+function verifyJWT(req,res,next){
+    console.log('Token inside', req.headers.authorization)
+    const authHeader = req.headers.authorization;
+    if(!authHeader){
+        return res.status(401).send("Unauthorized Access")
+    }
+    const token = authHeader.split(' ')[1]
+    jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded){
+        if(err){
+            return res.status(403).send("Forbidden Access")
+        }
+        req.decoded
+        next()
+    })
+}
 
 
 async function run() {
@@ -98,8 +117,14 @@ async function run() {
          * app.patch('/bookings/:id')
          * app.delete('/bookings/:id')
         */
-         app.get('/bookings',  async (req, res) => {
+         app.get('/bookings', async (req, res) => {
             const email = req.query.email;
+            // const decodedEmail = req.decoded.email;
+
+            // if (email !== decodedEmail) {
+            //     return res.status(403).send({ message: 'forbidden access' });
+            // }
+
             const query = { email: email };
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings);
@@ -140,6 +165,12 @@ async function run() {
             res.status(403).send({ accessToken: '' }) 
           })
           
+          //Users : 
+          app.get('/users', async(req, res)=> {
+            const query = {}; 
+            const users = await usersCollection.find(query).toArray()
+            res.send(users)
+          })
 
 
 
